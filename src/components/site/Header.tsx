@@ -35,6 +35,9 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-1">
+          <Link to="/admin/dashboard" className="hidden rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground md:inline-block">
+            Admin
+          </Link>
           <button className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground" aria-label="Recherche">
             <Search className="h-5 w-5" />
           </button>
