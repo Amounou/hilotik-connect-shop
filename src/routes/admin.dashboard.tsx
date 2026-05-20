@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PRODUCTS } from "@/lib/products";
-import { TrendingUp, ShoppingCart, Users, DollarSign, ArrowUpRight } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useAdmin } from "@/lib/admin-store";
+import { TrendingUp, ShoppingCart, Users, DollarSign, ArrowUpRight, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: Dashboard,
@@ -8,35 +9,52 @@ export const Route = createFileRoute("/admin/dashboard")({
 
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA";
 
-const STATS = [
-  { label: "Revenu (30j)", value: fmt(1842500), delta: "+12.4%", icon: DollarSign },
-  { label: "Commandes", value: "128", delta: "+8.1%", icon: ShoppingCart },
-  { label: "Clients", value: "412", delta: "+24", icon: Users },
-  { label: "Taux conversion", value: "3.8%", delta: "+0.6 pts", icon: TrendingUp },
-];
-
-const RECENT_ORDERS = [
-  { id: "HT-10245", client: "Aïcha N.", total: 49500, status: "Payée", method: "Orange Money" },
-  { id: "HT-10244", client: "Mamadou D.", total: 28000, status: "En préparation", method: "Wave" },
-  { id: "HT-10243", client: "Fatou S.", total: 67000, status: "Livrée", method: "Cash" },
-  { id: "HT-10242", client: "Ibrahima B.", total: 19500, status: "En attente", method: "MTN MoMo" },
-  { id: "HT-10241", client: "Khadija T.", total: 105000, status: "Payée", method: "Orange Money" },
-];
-
 function statusColor(s: string) {
   if (s === "Payée" || s === "Livrée") return "bg-emerald-500/10 text-emerald-600";
   if (s === "En préparation") return "bg-blue-500/10 text-blue-600";
+  if (s === "Annulée") return "bg-red-500/10 text-red-600";
   return "bg-amber-500/10 text-amber-600";
 }
 
 function Dashboard() {
-  const topProducts = [...PRODUCTS].slice(0, 5);
+  const navigate = useNavigate();
+  const { products, orders, customers, resetAll } = useAdmin();
+
+  const revenue = orders
+    .filter((o) => o.status === "Payée" || o.status === "Livrée")
+    .reduce((a, o) => a + o.total, 0);
+  const ordersCount = orders.length;
+  const customersCount = customers.length;
+  const paidCount = orders.filter((o) => o.status === "Payée" || o.status === "Livrée").length;
+  const conversion = ordersCount > 0 ? ((paidCount / ordersCount) * 100).toFixed(1) : "0";
+
+  const STATS = [
+    { label: "Revenu", value: fmt(revenue), delta: "+12.4%", icon: DollarSign },
+    { label: "Commandes", value: String(ordersCount), delta: `+${paidCount} payées`, icon: ShoppingCart },
+    { label: "Clients", value: String(customersCount), delta: "+24", icon: Users },
+    { label: "Taux conversion", value: `${conversion}%`, delta: "+0.6 pts", icon: TrendingUp },
+  ];
+
+  const recent = orders.slice(0, 5);
+  const topProducts = [...products].sort((a, b) => a.stock - b.stock).slice(0, 5);
 
   return (
     <div className="space-y-6 p-6 md:p-8">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Tableau de bord</h1>
-        <p className="text-sm text-muted-foreground">Vue d'ensemble de votre activité.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Tableau de bord</h1>
+          <p className="text-sm text-muted-foreground">Vue d'ensemble de votre activité.</p>
+        </div>
+        <button
+          onClick={() => {
+            resetAll();
+            toast.success("Données de démo réinitialisées");
+          }}
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs font-medium hover:bg-secondary"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Réinitialiser la démo
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -59,7 +77,9 @@ function Dashboard() {
         <div className="lg:col-span-2 rounded-xl border border-border bg-background">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h2 className="font-semibold">Commandes récentes</h2>
-            <span className="text-xs text-muted-foreground">5 dernières</span>
+            <Link to="/admin/commandes" className="text-xs font-medium text-muted-foreground hover:text-foreground">
+              Tout voir →
+            </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -73,8 +93,12 @@ function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {RECENT_ORDERS.map((o) => (
-                  <tr key={o.id} className="border-b border-border last:border-0">
+                {recent.map((o) => (
+                  <tr
+                    key={o.id}
+                    onClick={() => navigate({ to: "/admin/commandes" })}
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-secondary/40"
+                  >
                     <td className="px-5 py-3 font-mono text-xs">{o.id}</td>
                     <td className="px-5 py-3">{o.client}</td>
                     <td className="px-5 py-3 text-muted-foreground">{o.method}</td>
@@ -92,8 +116,11 @@ function Dashboard() {
         </div>
 
         <div className="rounded-xl border border-border bg-background">
-          <div className="border-b border-border px-5 py-4">
-            <h2 className="font-semibold">Top produits</h2>
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <h2 className="font-semibold">Stock faible</h2>
+            <Link to="/admin/produits" className="text-xs font-medium text-muted-foreground hover:text-foreground">
+              Gérer →
+            </Link>
           </div>
           <ul className="divide-y divide-border">
             {topProducts.map((p) => (
