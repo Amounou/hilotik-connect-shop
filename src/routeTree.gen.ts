@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PanierRouteImport } from './routes/panier'
 import { Route as CompteRouteImport } from './routes/compte'
 import { Route as CommandeRouteImport } from './routes/commande'
@@ -16,6 +17,11 @@ import { Route as BoutiqueRouteImport } from './routes/boutique'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProduitSlugRouteImport } from './routes/produit.$slug'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanierRoute = PanierRouteImport.update({
   id: '/panier',
   path: '/panier',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/commande': typeof CommandeRoute
   '/compte': typeof CompteRoute
   '/panier': typeof PanierRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/produit/$slug': typeof ProduitSlugRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/commande': typeof CommandeRoute
   '/compte': typeof CompteRoute
   '/panier': typeof PanierRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/produit/$slug': typeof ProduitSlugRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/commande': typeof CommandeRoute
   '/compte': typeof CompteRoute
   '/panier': typeof PanierRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/produit/$slug': typeof ProduitSlugRoute
 }
 export interface FileRouteTypes {
@@ -80,9 +89,17 @@ export interface FileRouteTypes {
     | '/commande'
     | '/compte'
     | '/panier'
+    | '/sitemap.xml'
     | '/produit/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/boutique' | '/commande' | '/compte' | '/panier' | '/produit/$slug'
+  to:
+    | '/'
+    | '/boutique'
+    | '/commande'
+    | '/compte'
+    | '/panier'
+    | '/sitemap.xml'
+    | '/produit/$slug'
   id:
     | '__root__'
     | '/'
@@ -90,6 +107,7 @@ export interface FileRouteTypes {
     | '/commande'
     | '/compte'
     | '/panier'
+    | '/sitemap.xml'
     | '/produit/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -99,11 +117,19 @@ export interface RootRouteChildren {
   CommandeRoute: typeof CommandeRoute
   CompteRoute: typeof CompteRoute
   PanierRoute: typeof PanierRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ProduitSlugRoute: typeof ProduitSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panier': {
       id: '/panier'
       path: '/panier'
@@ -155,8 +181,19 @@ const rootRouteChildren: RootRouteChildren = {
   CommandeRoute: CommandeRoute,
   CompteRoute: CompteRoute,
   PanierRoute: PanierRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   ProduitSlugRoute: ProduitSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
