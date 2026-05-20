@@ -1,23 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useAdmin, type PaymentMethod } from "@/lib/admin-store";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/admin/parametres")({
   component: Parametres,
 });
 
-function Field({ label, value, type = "text" }: { label: string; value: string; type?: string }) {
-  return (
-    <div>
-      <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</label>
-      <input
-        type={type}
-        defaultValue={value}
-        className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground"
-      />
-    </div>
-  );
-}
+const METHODS: PaymentMethod[] = ["Orange Money", "Wave", "MTN MoMo", "Cash à la livraison"];
 
 function Parametres() {
+  const { settings, updateSettings, togglePaymentMethod } = useAdmin();
+  const [form, setForm] = useState(settings);
+
+  useEffect(() => setForm(settings), [settings]);
+
+  const save = () => {
+    updateSettings(form);
+    toast.success("Paramètres enregistrés");
+  };
+
   return (
     <div className="space-y-6 p-6 md:p-8">
       <div>
@@ -29,21 +35,39 @@ function Parametres() {
         <section className="rounded-xl border border-border bg-background p-6">
           <h2 className="font-semibold">Informations boutique</h2>
           <div className="mt-4 space-y-4">
-            <Field label="Nom de la boutique" value="HiloTik" />
-            <Field label="Email contact" value="contact@hilotik.com" type="email" />
-            <Field label="Téléphone" value="+221 77 000 00 00" />
-            <Field label="Adresse" value="Dakar, Sénégal" />
+            <div>
+              <Label>Nom de la boutique</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" />
+            </div>
+            <div>
+              <Label>Email contact</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" />
+            </div>
+            <div>
+              <Label>Téléphone</Label>
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-1" />
+            </div>
+            <div>
+              <Label>Adresse</Label>
+              <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="mt-1" />
+            </div>
           </div>
         </section>
 
         <section className="rounded-xl border border-border bg-background p-6">
-          <h2 className="font-semibold">Paiement</h2>
+          <h2 className="font-semibold">Moyens de paiement</h2>
           <div className="mt-4 space-y-3">
-            {["Orange Money", "Wave", "MTN MoMo", "Cash à la livraison"].map((m) => (
-              <label key={m} className="flex items-center justify-between rounded-md border border-border px-3 py-2.5 text-sm">
+            {METHODS.map((m) => (
+              <div key={m} className="flex items-center justify-between rounded-md border border-border px-3 py-2.5 text-sm">
                 <span>{m}</span>
-                <input type="checkbox" defaultChecked className="h-4 w-4 accent-foreground" />
-              </label>
+                <Switch
+                  checked={settings.enabledMethods[m]}
+                  onCheckedChange={() => {
+                    togglePaymentMethod(m);
+                    toast.success(`${m} ${settings.enabledMethods[m] ? "désactivé" : "activé"}`);
+                  }}
+                />
+              </div>
             ))}
           </div>
         </section>
@@ -51,9 +75,18 @@ function Parametres() {
         <section className="rounded-xl border border-border bg-background p-6">
           <h2 className="font-semibold">Livraison</h2>
           <div className="mt-4 space-y-4">
-            <Field label="Frais standard (FCFA)" value="2000" type="number" />
-            <Field label="Frais express (FCFA)" value="5000" type="number" />
-            <Field label="Seuil livraison gratuite (FCFA)" value="50000" type="number" />
+            <div>
+              <Label>Frais standard (FCFA)</Label>
+              <Input type="number" value={form.shippingStandard} onChange={(e) => setForm({ ...form, shippingStandard: Number(e.target.value) })} className="mt-1" />
+            </div>
+            <div>
+              <Label>Frais express (FCFA)</Label>
+              <Input type="number" value={form.shippingExpress} onChange={(e) => setForm({ ...form, shippingExpress: Number(e.target.value) })} className="mt-1" />
+            </div>
+            <div>
+              <Label>Seuil livraison gratuite (FCFA)</Label>
+              <Input type="number" value={form.freeShippingThreshold} onChange={(e) => setForm({ ...form, freeShippingThreshold: Number(e.target.value) })} className="mt-1" />
+            </div>
           </div>
         </section>
 
@@ -72,14 +105,15 @@ function Parametres() {
                 <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">{a.role}</span>
               </div>
             ))}
+            <p className="pt-2 text-xs text-muted-foreground">
+              La gestion multi-admin nécessite l'activation de Lovable Cloud.
+            </p>
           </div>
         </section>
       </div>
 
       <div className="flex justify-end">
-        <button className="rounded-md bg-foreground px-6 py-2.5 text-sm font-medium text-background hover:opacity-90">
-          Enregistrer les modifications
-        </button>
+        <Button onClick={save} className="px-6">Enregistrer les modifications</Button>
       </div>
     </div>
   );

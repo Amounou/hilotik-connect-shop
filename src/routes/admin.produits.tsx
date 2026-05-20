@@ -1,7 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PRODUCTS } from "@/lib/products";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useAdmin, slugify } from "@/lib/admin-store";
+import type { Product, Category } from "@/lib/products";
+import { Plus, Search, Pencil, Trash2, ImagePlus } from "lucide-react";
+import { useState, useRef } from "react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import placeholder from "@/assets/p-tshirt.jpg";
 
 export const Route = createFileRoute("/admin/produits")({
   component: Produits,
@@ -9,21 +34,113 @@ export const Route = createFileRoute("/admin/produits")({
 
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA";
 
+interface FormState {
+  slug: string;
+  name: string;
+  brand: string;
+  price: string;
+  oldPrice: string;
+  category: string;
+  stock: string;
+  description: string;
+  image: string;
+}
+
+const empty = (): FormState => ({
+  slug: "",
+  name: "",
+  brand: "",
+  price: "",
+  oldPrice: "",
+  category: "homme",
+  stock: "0",
+  description: "",
+  image: placeholder,
+});
+
 function Produits() {
+  const { products, categories, addProduct, updateProduct, deleteProduct } = useAdmin();
   const [q, setQ] = useState("");
-  const list = PRODUCTS.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(empty());
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const list = products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
+
+  const openNew = () => {
+    setEditing(null);
+    setForm(empty());
+    setOpen(true);
+  };
+
+  const openEdit = (p: Product) => {
+    setEditing(p.slug);
+    setForm({
+      slug: p.slug,
+      name: p.name,
+      brand: p.brand,
+      price: String(p.price),
+      oldPrice: p.oldPrice ? String(p.oldPrice) : "",
+      category: p.category,
+      stock: String(p.stock),
+      description: p.description,
+      image: p.image,
+    });
+    setOpen(true);
+  };
+
+  const onFile = (f: File | undefined) => {
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => setForm((s) => ({ ...s, image: String(reader.result) }));
+    reader.readAsDataURL(f);
+  };
+
+  const save = () => {
+    if (!form.name.trim() || !form.price) {
+      toast.error("Nom et prix requis");
+      return;
+    }
+    const payload: Product = {
+      slug: editing || slugify(form.name),
+      name: form.name.trim(),
+      brand: form.brand.trim() || "HiloTik",
+      price: Number(form.price),
+      oldPrice: form.oldPrice ? Number(form.oldPrice) : undefined,
+      category: form.category as Category,
+      image: form.image,
+      description: form.description.trim(),
+      stock: Number(form.stock) || 0,
+    };
+    if (editing) {
+      updateProduct(editing, payload);
+      toast.success("Produit mis à jour");
+    } else {
+      addProduct(payload);
+      toast.success("Produit ajouté");
+    }
+    setOpen(false);
+  };
+
+  const remove = () => {
+    if (!confirmDelete) return;
+    deleteProduct(confirmDelete);
+    toast.success("Produit supprimé");
+    setConfirmDelete(null);
+  };
 
   return (
     <div className="space-y-6 p-6 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold">Produits</h1>
-          <p className="text-sm text-muted-foreground">{PRODUCTS.length} produits dans le catalogue</p>
+          <p className="text-sm text-muted-foreground">{products.length} produits dans le catalogue</p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-90">
-          <Plus className="h-4 w-4" />
-          Nouveau produit
-        </button>
+        <Button onClick={openNew} className="gap-2">
+          <Plus className="h-4 w-4" /> Nouveau produit
+        </Button>
       </div>
 
       <div className="rounded-xl border border-border bg-background">
@@ -68,20 +185,99 @@ function Produits() {
                   <td className="px-4 py-3 font-medium">{fmt(p.price)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <button className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
+                      <button onClick={() => openEdit(p)} className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-red-600">
+                      <button onClick={() => setConfirmDelete(p.slug)} className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-red-600">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {list.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    Aucun produit trouvé.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Modifier le produit" : "Nouveau produit"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label>Image</Label>
+              <div className="mt-1 flex items-center gap-3">
+                <img src={form.image} alt="" className="h-20 w-20 rounded-md object-cover border border-border" />
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+                <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} className="gap-2">
+                  <ImagePlus className="h-4 w-4" /> Changer l'image
+                </Button>
+              </div>
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Nom</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" />
+            </div>
+            <div>
+              <Label>Marque</Label>
+              <Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="mt-1" />
+            </div>
+            <div>
+              <Label>Catégorie</Label>
+              <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Prix (FCFA)</Label>
+              <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="mt-1" />
+            </div>
+            <div>
+              <Label>Ancien prix (optionnel)</Label>
+              <Input type="number" value={form.oldPrice} onChange={(e) => setForm({ ...form, oldPrice: e.target.value })} className="mt-1" />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Stock</Label>
+              <Input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="mt-1" />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Description</Label>
+              <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-1" rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+            <Button onClick={save}>{editing ? "Enregistrer" : "Créer"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce produit ?</AlertDialogTitle>
+            <AlertDialogDescription>Cette action est définitive.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={remove} className="bg-red-600 hover:bg-red-700">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
