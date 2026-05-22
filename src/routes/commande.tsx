@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/products";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 
@@ -10,21 +11,35 @@ export const Route = createFileRoute("/commande")({
   head: () => ({ meta: [{ title: "Commande — HiloTik" }] }),
 });
 
-type Payment = "orange" | "mtn" | "wave" | "cod";
-
-const PAYMENTS: { id: Payment; label: string; desc: string }[] = [
-  { id: "orange", label: "Orange Money", desc: "Paiement instantané via Orange" },
+const PAYMENTS = [
+  { id: "orange_money", label: "Orange Money", desc: "Paiement instantané via Orange" },
   { id: "mtn", label: "MTN Money", desc: "Paiement via MTN Mobile Money" },
   { id: "wave", label: "Wave", desc: "Rapide et sans frais" },
-  { id: "cod", label: "Paiement à la livraison", desc: "Payez en espèces à la réception" },
-];
+  { id: "cash", label: "Paiement à la livraison", desc: "Payez en espèces à la réception" },
+] as const;
+
+type PaymentId = (typeof PAYMENTS)[number]["id"];
 
 function Checkout() {
   const { items, total, clear } = useCart();
   const navigate = useNavigate();
-  const [payment, setPayment] = useState<Payment>("orange");
+  const [payment, setPayment] = useState<PaymentId>("orange_money");
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", address: "", city: "" });
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle().then(({ data: p }) => {
+          if (p) {
+            const [first = "", ...rest] = (p.full_name ?? "").split(" ");
+            setForm((s) => ({ ...s, firstName: first, lastName: rest.join(" "), phone: p.phone ?? "", address: p.address ?? "", city: p.city ?? "" }));
+          }
+        });
+      }
+    });
+  }, []);
 
   const sub = total();
   const shipping = sub > 50000 ? 0 : 2000;
@@ -55,14 +70,51 @@ function Checkout() {
     );
   }
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.firstName || !form.phone || !form.address) {
       toast.error("Veuillez remplir tous les champs requis");
       return;
     }
-    clear();
-    setDone(true);
+    setSubmitting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id ?? null;
+      const customerName = `${form.firstName} ${form.lastName}`.trim();
+
+      const { data: order, error: oErr } = await supabase
+        .from("orders")
+        .insert({
+          user_id: userId,
+          customer_name: customerName,
+          customer_phone: form.phone,
+          customer_address: form.address,
+          customer_city: form.city || null,
+          total: sub + shipping,
+          shipping_fee: shipping,
+          payment_method: payment,
+          status: payment === "cash" ? "pending" : "paid",
+        })
+        .select("id")
+        .single();
+      if (oErr) throw oErr;
+
+      const itemsPayload = items.map((i) => ({
+        order_id: order.id,
+        product_name: i.name,
+        unit_price: i.price,
+        quantity: i.qty,
+      }));
+      const { error: iErr } = await supabase.from("order_items").insert(itemsPayload);
+      if (iErr) throw iErr;
+
+      clear();
+      setDone(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la commande");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -94,13 +146,7 @@ function Checkout() {
                     payment === p.id ? "border-foreground bg-secondary/50" : "border-border hover:border-foreground/40"
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={payment === p.id}
-                    onChange={() => setPayment(p.id)}
-                    className="mt-1 accent-foreground"
-                  />
+                  <input type="radio" name="payment" checked={payment === p.id} onChange={() => setPayment(p.id)} className="mt-1 accent-foreground" />
                   <div>
                     <p className="text-sm font-medium">{p.label}</p>
                     <p className="text-xs text-muted-foreground">{p.desc}</p>
@@ -128,12 +174,10 @@ function Checkout() {
               <dt>Total</dt><dd>{formatPrice(sub + shipping)}</dd>
             </div>
           </dl>
-          <button type="submit" className="mt-6 w-full rounded-md bg-foreground px-6 py-3.5 text-sm font-medium text-background hover:opacity-90">
-            Valider la commande
+          <button type="submit" disabled={submitting} className="mt-6 w-full rounded-md bg-foreground px-6 py-3.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50">
+            {submitting ? "Validation…" : "Valider la commande"}
           </button>
-          <p className="mt-3 text-center text-[11px] text-muted-foreground">
-            En validant, vous acceptez nos CGV.
-          </p>
+          <p className="mt-3 text-center text-[11px] text-muted-foreground">En validant, vous acceptez nos CGV.</p>
         </aside>
       </div>
     </form>
@@ -144,12 +188,7 @@ function Field({ label, value, onChange, type = "text" }: { label: string; value
   return (
     <label className="block">
       <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 block w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-foreground"
-      />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="mt-1.5 block w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-foreground" />
     </label>
   );
 }
