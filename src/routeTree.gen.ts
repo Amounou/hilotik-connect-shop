@@ -14,6 +14,7 @@ import { Route as PanierRouteImport } from './routes/panier'
 import { Route as CompteRouteImport } from './routes/compte'
 import { Route as CommandeRouteImport } from './routes/commande'
 import { Route as BoutiqueRouteImport } from './routes/boutique'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProduitSlugRouteImport } from './routes/produit.$slug'
@@ -48,6 +49,11 @@ const CommandeRoute = CommandeRouteImport.update({
 const BoutiqueRoute = BoutiqueRouteImport.update({
   id: '/boutique',
   path: '/boutique',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -104,6 +110,7 @@ const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/auth': typeof AuthRoute
   '/boutique': typeof BoutiqueRoute
   '/commande': typeof CommandeRoute
   '/compte': typeof CompteRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/auth': typeof AuthRoute
   '/boutique': typeof BoutiqueRoute
   '/commande': typeof CommandeRoute
   '/compte': typeof CompteRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/auth': typeof AuthRoute
   '/boutique': typeof BoutiqueRoute
   '/commande': typeof CommandeRoute
   '/compte': typeof CompteRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/auth'
     | '/boutique'
     | '/commande'
     | '/compte'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/auth'
     | '/boutique'
     | '/commande'
     | '/compte'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/auth'
     | '/boutique'
     | '/commande'
     | '/compte'
@@ -210,6 +222,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AuthRoute: typeof AuthRoute
   BoutiqueRoute: typeof BoutiqueRoute
   CommandeRoute: typeof CommandeRoute
   CompteRoute: typeof CompteRoute
@@ -253,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/boutique'
       fullPath: '/boutique'
       preLoaderRoute: typeof BoutiqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -353,6 +373,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AuthRoute: AuthRoute,
   BoutiqueRoute: BoutiqueRoute,
   CommandeRoute: CommandeRoute,
   CompteRoute: CompteRoute,
