@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Product } from "./products";
 
 export interface CartItem {
   slug: string;
@@ -11,9 +10,16 @@ export interface CartItem {
   size?: string;
 }
 
+interface CartProductInput {
+  slug: string;
+  name: string;
+  price: number;
+  image: string;
+}
+
 interface CartState {
   items: CartItem[];
-  add: (p: Product, opts?: { size?: string; qty?: number }) => void;
+  add: (p: CartProductInput, opts?: { size?: string; qty?: number }) => void;
   remove: (slug: string, size?: string) => void;
   setQty: (slug: string, qty: number, size?: string) => void;
   clear: () => void;

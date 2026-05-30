@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { type Product, formatPrice } from "@/lib/products";
+import { formatPrice, type UIProduct } from "@/lib/catalog";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product }: { product: UIProduct }) {
   return (
     <Link
       to="/produit/$slug"
@@ -9,14 +9,20 @@ export function ProductCard({ product }: { product: Product }) {
       className="group block"
     >
       <div className="relative aspect-square overflow-hidden rounded-md bg-secondary">
-        <img
-          src={product.image}
-          alt={product.name}
-          loading="lazy"
-          width={800}
-          height={800}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-        />
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            loading="lazy"
+            width={800}
+            height={800}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+            Sans image
+          </div>
+        )}
         {product.isNew && (
           <span className="absolute left-3 top-3 rounded-sm bg-foreground px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
             Nouveau
