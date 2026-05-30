@@ -1,18 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/site/ProductCard";
-import { PRODUCTS, CATEGORIES, type Category } from "@/lib/products";
+import { useProducts, useCategories } from "@/hooks/use-catalog";
 
 type Sort = "popular" | "price-asc" | "price-desc" | "new";
 
 interface Search {
-  cat?: Category | "all";
+  cat?: string;
   sort?: Sort;
 }
 
 export const Route = createFileRoute("/boutique")({
   validateSearch: (s: Record<string, unknown>): Search => ({
-    cat: (s.cat as Search["cat"]) || "all",
+    cat: (s.cat as string) || "all",
     sort: (s.sort as Sort) || "popular",
   }),
   component: Boutique,
@@ -29,9 +29,12 @@ function Boutique() {
   const navigate = Route.useNavigate();
   const [maxPrice, setMaxPrice] = useState<number>(100000);
 
+  const { data: allProducts = [], isLoading } = useProducts();
+  const { data: categories = [] } = useCategories();
+
   const products = useMemo(() => {
-    let list = [...PRODUCTS];
-    if (cat && cat !== "all") list = list.filter((p) => p.category === cat);
+    let list = [...allProducts];
+    if (cat && cat !== "all") list = list.filter((p) => p.categorySlug === cat);
     list = list.filter((p) => p.price <= maxPrice);
     switch (sort) {
       case "price-asc": list.sort((a, b) => a.price - b.price); break;
@@ -39,14 +42,16 @@ function Boutique() {
       case "new": list.sort((a, b) => Number(!!b.isNew) - Number(!!a.isNew)); break;
     }
     return list;
-  }, [cat, sort, maxPrice]);
+  }, [allProducts, cat, sort, maxPrice]);
+
+  const currentCat = categories.find((c) => c.slug === cat);
 
   return (
     <div className="container-page py-10 md:py-14">
       <header className="mb-8 border-b border-border pb-6">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">Collection</p>
         <h1 className="mt-2 font-display text-4xl font-bold md:text-5xl">
-          {cat === "all" || !cat ? "Tous les produits" : CATEGORIES.find((c) => c.id === cat)?.label}
+          {cat === "all" || !cat ? "Tous les produits" : currentCat?.name ?? "Catégorie"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">{products.length} produit{products.length > 1 ? "s" : ""}</p>
       </header>
@@ -62,10 +67,10 @@ function Boutique() {
                   Toutes
                 </Link>
               </li>
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <li key={c.id}>
-                  <Link to="/boutique" search={{ cat: c.id, sort }} className={`block ${cat === c.id ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
-                    {c.label}
+                  <Link to="/boutique" search={{ cat: c.slug, sort }} className={`block ${cat === c.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+                    {c.name}
                   </Link>
                 </li>
               ))}
@@ -105,13 +110,17 @@ function Boutique() {
 
         {/* Grille */}
         <section>
-          {products.length === 0 ? (
+          {isLoading ? (
+            <div className="rounded-md border border-dashed border-border py-20 text-center text-sm text-muted-foreground">
+              Chargement…
+            </div>
+          ) : products.length === 0 ? (
             <div className="rounded-md border border-dashed border-border py-20 text-center text-sm text-muted-foreground">
               Aucun produit ne correspond à votre filtre.
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-5 lg:grid-cols-3 lg:gap-6">
-              {products.map((p) => <ProductCard key={p.slug} product={p} />)}
+              {products.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           )}
         </section>

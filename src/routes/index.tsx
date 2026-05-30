@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ProductCard } from "@/components/site/ProductCard";
-import { PRODUCTS, CATEGORIES } from "@/lib/products";
+import { useProducts, useCategories } from "@/hooks/use-catalog";
 import hero from "@/assets/hero.jpg";
 import { ArrowRight, Truck, ShieldCheck, Smartphone } from "lucide-react";
 
@@ -16,8 +16,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const featured = PRODUCTS.slice(0, 4);
-  const newArrivals = PRODUCTS.filter((p) => p.isNew);
+  const { data: products = [] } = useProducts();
+  const { data: categories = [] } = useCategories();
+
+  const featured = products.slice(0, 4);
+  const newArrivals = products.filter((p) => p.isNew);
 
   return (
     <div>
@@ -88,54 +91,60 @@ function Index() {
       </section>
 
       {/* Catégories */}
-      <section className="container-page py-16">
-        <div className="mb-8 flex items-end justify-between">
-          <h2 className="font-display text-3xl font-bold md:text-4xl">Catégories</h2>
-          <Link to="/boutique" className="text-sm text-muted-foreground hover:text-foreground">Voir tout →</Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {CATEGORIES.map((c) => {
-            const p = PRODUCTS.find((x) => x.category === c.id);
-            return (
-              <Link
-                key={c.id}
-                to="/boutique"
-                search={{ cat: c.id }}
-                className="group relative aspect-[4/5] overflow-hidden rounded-md bg-secondary"
-              >
-                {p && (
-                  <img src={p.image} alt={c.label} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
-                <span className="absolute bottom-4 left-4 font-display text-xl font-bold text-background">
-                  {c.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      {categories.length > 0 && (
+        <section className="container-page py-16">
+          <div className="mb-8 flex items-end justify-between">
+            <h2 className="font-display text-3xl font-bold md:text-4xl">Catégories</h2>
+            <Link to="/boutique" className="text-sm text-muted-foreground hover:text-foreground">Voir tout →</Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {categories.map((c) => {
+              const p = products.find((x) => x.categorySlug === c.slug);
+              return (
+                <Link
+                  key={c.id}
+                  to="/boutique"
+                  search={{ cat: c.slug }}
+                  className="group relative aspect-[4/5] overflow-hidden rounded-md bg-secondary"
+                >
+                  {p?.image && (
+                    <img src={p.image} alt={c.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
+                  <span className="absolute bottom-4 left-4 font-display text-xl font-bold text-background">
+                    {c.name}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Featured */}
-      <section className="container-page py-8">
-        <div className="mb-8 flex items-end justify-between">
-          <h2 className="font-display text-3xl font-bold md:text-4xl">Produits populaires</h2>
-          <Link to="/boutique" className="text-sm text-muted-foreground hover:text-foreground">Voir tout →</Link>
-        </div>
-        <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-6">
-          {featured.map((p) => <ProductCard key={p.slug} product={p} />)}
-        </div>
-      </section>
+      {featured.length > 0 && (
+        <section className="container-page py-8">
+          <div className="mb-8 flex items-end justify-between">
+            <h2 className="font-display text-3xl font-bold md:text-4xl">Produits populaires</h2>
+            <Link to="/boutique" className="text-sm text-muted-foreground hover:text-foreground">Voir tout →</Link>
+          </div>
+          <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-6">
+            {featured.map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
+        </section>
+      )}
 
       {/* New arrivals */}
-      <section className="container-page py-16">
-        <div className="mb-8 flex items-end justify-between">
-          <h2 className="font-display text-3xl font-bold md:text-4xl">Nouveautés</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-6">
-          {newArrivals.map((p) => <ProductCard key={p.slug} product={p} />)}
-        </div>
-      </section>
+      {newArrivals.length > 0 && (
+        <section className="container-page py-16">
+          <div className="mb-8 flex items-end justify-between">
+            <h2 className="font-display text-3xl font-bold md:text-4xl">Nouveautés</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-6">
+            {newArrivals.map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="container-page pb-16">

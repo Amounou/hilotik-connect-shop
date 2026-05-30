@@ -1,42 +1,45 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { findProduct, PRODUCTS, formatPrice } from "@/lib/products";
+import { useProduct, useProducts } from "@/hooks/use-catalog";
+import { formatPrice } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { ProductCard } from "@/components/site/ProductCard";
 import { toast } from "sonner";
 import { ShoppingBag, Truck, ShieldCheck, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/produit/$slug")({
-  loader: ({ params }) => {
-    const product = findProduct(params.slug);
-    if (!product) throw notFound();
-    return { product };
-  },
   component: ProductPage,
-  head: ({ loaderData }) => ({
+  head: () => ({
     meta: [
-      { title: loaderData ? `${loaderData.product.name} — HiloTik` : "Produit — HiloTik" },
-      { name: "description", content: loaderData?.product.description },
-      { property: "og:title", content: loaderData?.product.name },
-      { property: "og:image", content: loaderData?.product.image },
+      { title: "Produit — HiloTik" },
     ],
   }),
-  notFoundComponent: () => (
-    <div className="container-page py-20 text-center">
-      <h1 className="font-display text-3xl font-bold">Produit introuvable</h1>
-      <Link to="/boutique" className="mt-6 inline-block text-sm underline">Retour à la boutique</Link>
-    </div>
-  ),
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const { data: product, isLoading } = useProduct(slug);
+  const { data: allProducts = [] } = useProducts();
   const add = useCart((s) => s.add);
-  const [size, setSize] = useState<string | undefined>(product.sizes?.[0]);
+  const [size, setSize] = useState<string | undefined>(undefined);
 
-  const related = PRODUCTS.filter(
-    (p) => p.category === product.category && p.slug !== product.slug,
-  ).slice(0, 4);
+  if (isLoading) {
+    return <div className="container-page py-20 text-center text-sm text-muted-foreground">Chargement…</div>;
+  }
+
+  if (!product) {
+    return (
+      <div className="container-page py-20 text-center">
+        <h1 className="font-display text-3xl font-bold">Produit introuvable</h1>
+        <Link to="/boutique" className="mt-6 inline-block text-sm underline">Retour à la boutique</Link>
+      </div>
+    );
+  }
+
+  const selectedSize = size ?? product.sizes[0];
+  const related = allProducts
+    .filter((p) => p.categorySlug === product.categorySlug && p.slug !== product.slug)
+    .slice(0, 4);
 
   return (
     <div>
@@ -50,7 +53,9 @@ function ProductPage() {
 
       <div className="container-page grid gap-10 py-10 md:grid-cols-2 md:py-14">
         <div className="aspect-square overflow-hidden rounded-md bg-secondary">
-          <img src={product.image} alt={product.name} width={800} height={800} className="h-full w-full object-cover" />
+          {product.image && (
+            <img src={product.image} alt={product.name} width={800} height={800} className="h-full w-full object-cover" />
+          )}
         </div>
 
         <div>
@@ -66,16 +71,16 @@ function ProductPage() {
 
           <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{product.description}</p>
 
-          {product.sizes && (
+          {product.sizes.length > 0 && (
             <div className="mt-8">
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider">Taille</h3>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map((s: string) => (
+                {product.sizes.map((s) => (
                   <button
                     key={s}
                     onClick={() => setSize(s)}
                     className={`min-w-12 rounded-md border px-4 py-2 text-sm transition ${
-                      size === s
+                      selectedSize === s
                         ? "border-foreground bg-foreground text-background"
                         : "border-border hover:border-foreground"
                     }`}
@@ -90,10 +95,11 @@ function ProductPage() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => {
-                add(product, { size });
+                add(product, { size: selectedSize });
                 toast.success("Ajouté au panier", { description: product.name });
               }}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-foreground px-6 py-3.5 text-sm font-medium text-background transition hover:opacity-90"
+              disabled={product.stock <= 0}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-foreground px-6 py-3.5 text-sm font-medium text-background transition hover:opacity-90 disabled:opacity-50"
             >
               <ShoppingBag className="h-4 w-4" /> Ajouter au panier
             </button>
@@ -121,7 +127,7 @@ function ProductPage() {
         <section className="container-page pb-16">
           <h2 className="mb-8 font-display text-3xl font-bold">Vous aimerez aussi</h2>
           <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-6">
-            {related.map((p) => <ProductCard key={p.slug} product={p} />)}
+            {related.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         </section>
       )}
