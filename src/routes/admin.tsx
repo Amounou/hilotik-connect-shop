@@ -66,8 +66,8 @@ function AdminGate() {
       <div className="container-page py-20 text-center">
         <ShieldCheck className="mx-auto h-12 w-12 text-muted-foreground" />
         <h1 className="mt-4 font-display text-3xl font-bold">Accès réservé</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Connectez-vous pour accéder à l'administration.</p>
-        <Button onClick={() => navigate({ to: "/auth" })} className="mt-6">Se connecter</Button>
+        <p className="mt-2 text-sm text-muted-foreground">Connectez-vous avec votre compte administrateur.</p>
+        <Button onClick={() => navigate({ to: "/admin-login" })} className="mt-6">Connexion admin</Button>
       </div>
     );
   }
