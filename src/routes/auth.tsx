@@ -100,7 +100,15 @@ function AuthPage() {
             {mode === "login" ? "Créer un compte" : "Se connecter"}
           </button>
         </p>
-        <p className="mt-2 text-center text-xs text-muted-foreground">
+        <div className="mt-6 rounded-md border border-border bg-secondary/40 p-4 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">Vous êtes administrateur ?</p>
+          <p className="mt-1">
+            <Link to="/admin-login" className="font-medium text-foreground underline">
+              Accéder à la console admin
+            </Link>
+          </p>
+        </div>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
           <Link to="/" className="hover:text-foreground">← Retour à la boutique</Link>
         </p>
       </div>
