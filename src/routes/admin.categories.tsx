@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAdmin } from "@/lib/admin-store";
+import { useQueryClient } from "@tanstack/react-query";
+import { useProducts, useCategories } from "@/hooks/use-catalog";
+import { createCategory, deleteCategory } from "@/lib/catalog";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,22 +15,43 @@ export const Route = createFileRoute("/admin/categories")({
 });
 
 function Categories() {
-  const { categories, products, addCategory, deleteCategory } = useAdmin();
+  const qc = useQueryClient();
+  const { data: categories = [] } = useCategories();
+  const { data: products = [] } = useProducts({ includeInactive: true });
   const [open, setOpen] = useState(false);
-  const [label, setLabel] = useState("");
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const save = () => {
-    if (!label.trim()) return toast.error("Nom requis");
-    addCategory(label.trim());
-    toast.success("Catégorie ajoutée");
-    setLabel("");
-    setOpen(false);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["categories"] });
+    qc.invalidateQueries({ queryKey: ["products"] });
   };
 
-  const remove = (id: string, count: number) => {
+  const save = async () => {
+    if (!name.trim()) return toast.error("Nom requis");
+    setSaving(true);
+    try {
+      await createCategory(name.trim());
+      toast.success("Catégorie ajoutée");
+      setName("");
+      setOpen(false);
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: string, count: number) => {
     if (count > 0) return toast.error(`Impossible : ${count} produit(s) utilisent cette catégorie`);
-    deleteCategory(id);
-    toast.success("Catégorie supprimée");
+    try {
+      await deleteCategory(id);
+      toast.success("Catégorie supprimée");
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
   };
 
   return (
@@ -45,23 +68,28 @@ function Categories() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {categories.map((c) => {
-          const count = products.filter((p) => p.category === c.id).length;
+          const count = products.filter((p) => p.categoryId === c.id).length;
           return (
             <div key={c.id} className="group relative rounded-xl border border-border bg-background p-5">
               <button
-                onClick={() => remove(String(c.id), count)}
+                onClick={() => remove(c.id, count)}
                 className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-secondary hover:text-red-600 group-hover:opacity-100"
                 aria-label="Supprimer"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">{c.id}</p>
-              <h2 className="mt-2 font-display text-lg font-bold">{c.label}</h2>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">{c.slug}</p>
+              <h2 className="mt-2 font-display text-lg font-bold">{c.name}</h2>
               <p className="mt-3 text-2xl font-bold">{count}</p>
               <p className="text-xs text-muted-foreground">produits</p>
             </div>
           );
         })}
+        {categories.length === 0 && (
+          <div className="col-span-full rounded-md border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
+            Aucune catégorie. Créez-en une pour démarrer.
+          </div>
+        )}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -71,11 +99,11 @@ function Categories() {
           </DialogHeader>
           <div>
             <Label>Nom de la catégorie</Label>
-            <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex: Enfants" className="mt-1" autoFocus />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Enfants" className="mt-1" autoFocus />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-            <Button onClick={save}>Créer</Button>
+            <Button onClick={save} disabled={saving}>{saving ? "…" : "Créer"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

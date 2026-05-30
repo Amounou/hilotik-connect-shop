@@ -134,39 +134,54 @@ export type Database = {
       products: {
         Row: {
           active: boolean
+          brand: string
           category_id: string | null
+          colors: string[]
           created_at: string
           description: string | null
           id: string
           image_url: string | null
+          is_new: boolean
           name: string
+          old_price: number | null
           price: number
+          sizes: string[]
           slug: string
           stock: number
           updated_at: string
         }
         Insert: {
           active?: boolean
+          brand?: string
           category_id?: string | null
+          colors?: string[]
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
+          is_new?: boolean
           name: string
+          old_price?: number | null
           price?: number
+          sizes?: string[]
           slug: string
           stock?: number
           updated_at?: string
         }
         Update: {
           active?: boolean
+          brand?: string
           category_id?: string | null
+          colors?: string[]
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
+          is_new?: boolean
           name?: string
+          old_price?: number | null
           price?: number
+          sizes?: string[]
           slug?: string
           stock?: number
           updated_at?: string

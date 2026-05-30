@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { PRODUCTS } from "@/lib/products";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const BASE_URL = "";
 
@@ -8,12 +8,17 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        const { data: products } = await supabaseAdmin
+          .from("products")
+          .select("slug")
+          .eq("active", true);
+
         const entries = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/boutique", changefreq: "daily", priority: "0.9" },
           { path: "/panier", changefreq: "monthly", priority: "0.3" },
           { path: "/compte", changefreq: "monthly", priority: "0.3" },
-          ...PRODUCTS.map((p) => ({
+          ...(products ?? []).map((p) => ({
             path: `/produit/${p.slug}`,
             changefreq: "weekly" as const,
             priority: "0.7",
