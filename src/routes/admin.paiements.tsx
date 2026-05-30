@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAdmin, type PaymentMethod } from "@/lib/admin-store";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -9,6 +11,8 @@ export const Route = createFileRoute("/admin/paiements")({
 
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA";
 
+type DbMethod = "orange_money" | "wave" | "mtn" | "cash";
+
 const COLORS: Record<PaymentMethod, string> = {
   "Orange Money": "bg-orange-500",
   "Wave": "bg-blue-500",
@@ -16,15 +20,30 @@ const COLORS: Record<PaymentMethod, string> = {
   "Cash à la livraison": "bg-emerald-500",
 };
 
+const DB_TO_LABEL: Record<DbMethod, PaymentMethod> = {
+  orange_money: "Orange Money",
+  wave: "Wave",
+  mtn: "MTN MoMo",
+  cash: "Cash à la livraison",
+};
+
 function Paiements() {
-  const { orders, settings, togglePaymentMethod } = useAdmin();
+  const { settings, togglePaymentMethod } = useAdmin();
+  const { data: orders = [] } = useQuery({
+    queryKey: ["admin", "orders-payments"],
+    queryFn: async () => {
+      const { data } = await supabase.from("orders").select("total, payment_method, status");
+      return data ?? [];
+    },
+  });
 
   const methods = (Object.keys(COLORS) as PaymentMethod[]).map((name) => {
-    const matching = orders.filter((o) => o.method === name);
+    const dbKey = (Object.keys(DB_TO_LABEL) as DbMethod[]).find((k) => DB_TO_LABEL[k] === name)!;
+    const matching = orders.filter((o) => o.payment_method === dbKey);
     return {
       name,
       count: matching.length,
-      total: matching.reduce((a, o) => a + o.total, 0),
+      total: matching.reduce((a, o) => a + Number(o.total), 0),
       enabled: settings.enabledMethods[name],
       color: COLORS[name],
     };
