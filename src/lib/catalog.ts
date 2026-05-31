@@ -8,7 +8,9 @@ export interface UICategory {
   slug: string;
   name: string;
   description: string | null;
+  parentId: string | null;
 }
+
 
 export interface UIProduct {
   id: string;
