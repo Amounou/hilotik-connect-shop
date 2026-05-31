@@ -8,7 +8,9 @@ export interface UICategory {
   slug: string;
   name: string;
   description: string | null;
+  parentId: string | null;
 }
+
 
 export interface UIProduct {
   id: string;
@@ -100,11 +102,18 @@ export async function fetchProductBySlug(slug: string) {
 export async function fetchCategories(): Promise<UICategory[]> {
   const { data, error } = await supabase
     .from("categories")
-    .select("id, slug, name, description")
+    .select("id, slug, name, description, parent_id")
     .order("name");
   if (error) throw error;
-  return data;
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    name: c.name,
+    description: c.description,
+    parentId: (c as { parent_id: string | null }).parent_id ?? null,
+  }));
 }
+
 
 // ---------- Mutations (admin) ----------
 
@@ -157,13 +166,14 @@ export async function deleteProduct(id: string) {
   if (error) throw error;
 }
 
-export async function createCategory(name: string, description?: string) {
+export async function createCategory(name: string, parentId?: string | null, description?: string) {
   const slug = slugify(name);
   const { error } = await supabase
     .from("categories")
-    .insert({ name, slug, description: description ?? null });
+    .insert({ name, slug, description: description ?? null, parent_id: parentId ?? null });
   if (error) throw error;
 }
+
 
 export async function deleteCategory(id: string) {
   const { error } = await supabase.from("categories").delete().eq("id", id);

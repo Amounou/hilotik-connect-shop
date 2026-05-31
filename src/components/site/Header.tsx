@@ -1,13 +1,18 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, Search, User, LogOut } from "lucide-react";
+import { ShoppingBag, Search, User, LogOut, ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useAuth, signOut } from "@/hooks/use-auth";
+import { useCategories } from "@/hooks/use-catalog";
 import logo from "@/assets/hilotik-logo.png";
 
 export function Header() {
   const count = useCart((s) => s.items.reduce((a, i) => a + i.qty, 0));
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const { data: categories = [] } = useCategories();
+
+  const parents = categories.filter((c) => !c.parentId);
+  const childrenOf = (id: string) => categories.filter((c) => c.parentId === id);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
@@ -17,12 +22,55 @@ export function Header() {
           <span className="font-display text-xl font-bold tracking-tight">HiloTik</span>
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm md:flex">
+        <nav className="hidden items-center gap-6 text-sm md:flex">
           <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: "text-foreground" }} className="text-muted-foreground transition hover:text-foreground">Accueil</Link>
           <Link to="/boutique" activeProps={{ className: "text-foreground" }} className="text-muted-foreground transition hover:text-foreground">Boutique</Link>
-          <Link to="/boutique" search={{ cat: "homme" }} className="text-muted-foreground transition hover:text-foreground">Homme</Link>
-          <Link to="/boutique" search={{ cat: "femme" }} className="text-muted-foreground transition hover:text-foreground">Femme</Link>
-          <Link to="/boutique" search={{ cat: "accessoires" }} className="text-muted-foreground transition hover:text-foreground">Accessoires</Link>
+          {parents.map((p) => {
+            const subs = childrenOf(p.id);
+            if (subs.length === 0) {
+              return (
+                <Link
+                  key={p.id}
+                  to="/boutique"
+                  search={{ cat: p.slug }}
+                  className="text-muted-foreground transition hover:text-foreground"
+                >
+                  {p.name}
+                </Link>
+              );
+            }
+            return (
+              <div key={p.id} className="group relative">
+                <Link
+                  to="/boutique"
+                  search={{ cat: p.slug }}
+                  className="inline-flex items-center gap-1 text-muted-foreground transition hover:text-foreground"
+                >
+                  {p.name}
+                  <ChevronDown className="h-3 w-3" />
+                </Link>
+                <div className="invisible absolute left-0 top-full z-50 min-w-[180px] translate-y-1 rounded-md border border-border bg-background py-2 opacity-0 shadow-lg transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+                  <Link
+                    to="/boutique"
+                    search={{ cat: p.slug }}
+                    className="block px-4 py-1.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                  >
+                    Tout {p.name}
+                  </Link>
+                  {subs.map((s) => (
+                    <Link
+                      key={s.id}
+                      to="/boutique"
+                      search={{ cat: s.slug }}
+                      className="block px-4 py-1.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                    >
+                      {s.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-1">

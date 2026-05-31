@@ -34,7 +34,14 @@ function Boutique() {
 
   const products = useMemo(() => {
     let list = [...allProducts];
-    if (cat && cat !== "all") list = list.filter((p) => p.categorySlug === cat);
+    if (cat && cat !== "all") {
+      const selected = categories.find((c) => c.slug === cat);
+      const childSlugs = selected
+        ? categories.filter((c) => c.parentId === selected.id).map((c) => c.slug)
+        : [];
+      const allowed = new Set<string>([cat, ...childSlugs]);
+      list = list.filter((p) => p.categorySlug && allowed.has(p.categorySlug));
+    }
     list = list.filter((p) => p.price <= maxPrice);
     switch (sort) {
       case "price-asc": list.sort((a, b) => a.price - b.price); break;
@@ -42,7 +49,8 @@ function Boutique() {
       case "new": list.sort((a, b) => Number(!!b.isNew) - Number(!!a.isNew)); break;
     }
     return list;
-  }, [allProducts, cat, sort, maxPrice]);
+  }, [allProducts, cat, sort, maxPrice, categories]);
+
 
   const currentCat = categories.find((c) => c.slug === cat);
 
@@ -67,13 +75,28 @@ function Boutique() {
                   Toutes
                 </Link>
               </li>
-              {categories.map((c) => (
-                <li key={c.id}>
-                  <Link to="/boutique" search={{ cat: c.slug, sort }} className={`block ${cat === c.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
-                    {c.name}
-                  </Link>
-                </li>
-              ))}
+              {categories.filter((c) => !c.parentId).map((c) => {
+                const subs = categories.filter((s) => s.parentId === c.id);
+                return (
+                  <li key={c.id}>
+                    <Link to="/boutique" search={{ cat: c.slug, sort }} className={`block ${cat === c.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+                      {c.name}
+                    </Link>
+                    {subs.length > 0 && (
+                      <ul className="ml-3 mt-1 space-y-1 border-l border-border pl-3">
+                        {subs.map((s) => (
+                          <li key={s.id}>
+                            <Link to="/boutique" search={{ cat: s.slug, sort }} className={`block text-xs ${cat === s.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+                              {s.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+
             </ul>
           </div>
 
