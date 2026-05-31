@@ -75,13 +75,28 @@ function Boutique() {
                   Toutes
                 </Link>
               </li>
-              {categories.map((c) => (
-                <li key={c.id}>
-                  <Link to="/boutique" search={{ cat: c.slug, sort }} className={`block ${cat === c.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
-                    {c.name}
-                  </Link>
-                </li>
-              ))}
+              {categories.filter((c) => !c.parentId).map((c) => {
+                const subs = categories.filter((s) => s.parentId === c.id);
+                return (
+                  <li key={c.id}>
+                    <Link to="/boutique" search={{ cat: c.slug, sort }} className={`block ${cat === c.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+                      {c.name}
+                    </Link>
+                    {subs.length > 0 && (
+                      <ul className="ml-3 mt-1 space-y-1 border-l border-border pl-3">
+                        {subs.map((s) => (
+                          <li key={s.id}>
+                            <Link to="/boutique" search={{ cat: s.slug, sort }} className={`block text-xs ${cat === s.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+                              {s.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+
             </ul>
           </div>
 
