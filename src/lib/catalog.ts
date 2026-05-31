@@ -102,11 +102,18 @@ export async function fetchProductBySlug(slug: string) {
 export async function fetchCategories(): Promise<UICategory[]> {
   const { data, error } = await supabase
     .from("categories")
-    .select("id, slug, name, description")
+    .select("id, slug, name, description, parent_id")
     .order("name");
   if (error) throw error;
-  return data;
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    name: c.name,
+    description: c.description,
+    parentId: (c as { parent_id: string | null }).parent_id ?? null,
+  }));
 }
+
 
 // ---------- Mutations (admin) ----------
 
