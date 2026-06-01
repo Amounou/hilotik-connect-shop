@@ -99,9 +99,15 @@ function Checkout() {
         .single();
       if (oErr) throw oErr;
 
+      // Resolve product_id from slugs to link order items to catalog products
+      const slugs = Array.from(new Set(items.map((i) => i.slug)));
+      const { data: prods } = await supabase.from("products").select("id,slug").in("slug", slugs);
+      const slugToId = new Map((prods ?? []).map((p) => [p.slug, p.id]));
+
       const itemsPayload = items.map((i) => ({
         order_id: order.id,
-        product_name: i.name,
+        product_id: slugToId.get(i.slug) ?? null,
+        product_name: i.name + (i.size ? ` (${i.size})` : ""),
         unit_price: i.price,
         quantity: i.qty,
       }));
@@ -116,6 +122,7 @@ function Checkout() {
       setSubmitting(false);
     }
   };
+
 
   return (
     <form onSubmit={submit} className="container-page py-10 md:py-14">
