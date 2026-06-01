@@ -46,6 +46,44 @@ function Checkout() {
   const sub = total();
   const shipping = sub > 50000 ? 0 : 2000;
 
+  if (!authLoading && !user && !done) {
+    return (
+      <div className="container-page py-20">
+        <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+            <LogIn className="h-7 w-7 text-foreground" />
+          </div>
+          <h1 className="mt-5 font-display text-2xl font-bold">Connexion requise</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Pour valider votre commande et recevoir votre facture, vous devez vous connecter ou créer un compte client.
+          </p>
+          <div className="mt-6 flex flex-col gap-2">
+            <Link
+              to="/auth"
+              search={{ redirect: "/commande" } as never}
+              className="w-full rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background hover:opacity-90"
+            >
+              Se connecter
+            </Link>
+            <Link
+              to="/auth"
+              search={{ mode: "signup", redirect: "/commande" } as never}
+              className="w-full rounded-md border border-border px-6 py-3 text-sm font-medium hover:bg-secondary"
+            >
+              Créer un compte
+            </Link>
+            <button
+              onClick={() => navigate({ to: "/panier" })}
+              className="mt-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              ← Retour au panier
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0 && !done) {
     return (
       <div className="container-page py-20 text-center">
