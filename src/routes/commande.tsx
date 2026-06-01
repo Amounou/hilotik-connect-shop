@@ -24,6 +24,7 @@ type PaymentId = (typeof PAYMENTS)[number]["id"];
 function Checkout() {
   const { items, total, clear } = useCart();
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [payment, setPayment] = useState<PaymentId>("orange_money");
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
