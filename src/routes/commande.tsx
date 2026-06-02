@@ -195,7 +195,12 @@ function Checkout() {
           <section>
             <h2 className="font-display text-xl font-bold">Paiement</h2>
             <div className="mt-5 grid gap-3">
-              {PAYMENTS.map((p) => (
+              {availablePayments.length === 0 && (
+                <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  Aucun moyen de paiement disponible pour le moment.
+                </p>
+              )}
+              {availablePayments.map((p) => (
                 <label
                   key={p.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-md border p-4 transition ${
