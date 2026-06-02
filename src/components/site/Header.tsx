@@ -94,7 +94,7 @@ export function Header() {
               Admin
             </Link>
           )}
-          <button className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground" aria-label="Recherche">
+          <button onClick={() => setSearchOpen((s) => !s)} className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground" aria-label="Recherche">
             <Search className="h-5 w-5" />
           </button>
           {user ? (
