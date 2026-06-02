@@ -4,6 +4,7 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useAdmin, type PaymentMethod } from "@/lib/admin-store";
 import { toast } from "sonner";
 import { CheckCircle2, LogIn } from "lucide-react";
 
