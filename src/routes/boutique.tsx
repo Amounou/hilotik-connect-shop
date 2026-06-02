@@ -78,10 +78,38 @@ function Boutique() {
         {/* Filtres */}
         <aside className="space-y-8">
           <div>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider">Recherche</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                navigate({ search: { cat, sort, q: searchInput.trim() || undefined } });
+              }}
+              className="flex gap-2"
+            >
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Rechercher…"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground"
+              />
+              <button type="submit" className="rounded-md bg-foreground px-3 py-2 text-xs font-medium text-background hover:opacity-90">OK</button>
+            </form>
+            {q && (
+              <button
+                onClick={() => { setSearchInput(""); navigate({ search: { cat, sort, q: undefined } }); }}
+                className="mt-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Effacer la recherche
+              </button>
+            )}
+          </div>
+
+          <div>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider">Catégories</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/boutique" search={{ cat: "all", sort }} className={`block ${cat === "all" || !cat ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+                <Link to="/boutique" search={{ cat: "all", sort, q }} className={`block ${cat === "all" || !cat ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
                   Toutes
                 </Link>
               </li>
@@ -89,14 +117,14 @@ function Boutique() {
                 const subs = categories.filter((s) => s.parentId === c.id);
                 return (
                   <li key={c.id}>
-                    <Link to="/boutique" search={{ cat: c.slug, sort }} className={`block ${cat === c.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+                    <Link to="/boutique" search={{ cat: c.slug, sort, q }} className={`block ${cat === c.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
                       {c.name}
                     </Link>
                     {subs.length > 0 && (
                       <ul className="ml-3 mt-1 space-y-1 border-l border-border pl-3">
                         {subs.map((s) => (
                           <li key={s.id}>
-                            <Link to="/boutique" search={{ cat: s.slug, sort }} className={`block text-xs ${cat === s.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+                            <Link to="/boutique" search={{ cat: s.slug, sort, q }} className={`block text-xs ${cat === s.slug ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
                               {s.name}
                             </Link>
                           </li>
@@ -130,7 +158,7 @@ function Boutique() {
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider">Trier par</h3>
             <select
               value={sort}
-              onChange={(e) => navigate({ search: { cat, sort: e.target.value as Sort } })}
+              onChange={(e) => navigate({ search: { cat, sort: e.target.value as Sort, q } })}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             >
               <option value="popular">Popularité</option>
