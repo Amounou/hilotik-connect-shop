@@ -4,6 +4,7 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useAdmin, type PaymentMethod } from "@/lib/admin-store";
 import { toast } from "sonner";
 import { CheckCircle2, LogIn } from "lucide-react";
 
@@ -13,10 +14,10 @@ export const Route = createFileRoute("/commande")({
 });
 
 const PAYMENTS = [
-  { id: "orange_money", label: "Orange Money", desc: "Paiement instantané via Orange" },
-  { id: "mtn", label: "MTN Money", desc: "Paiement via MTN Mobile Money" },
-  { id: "wave", label: "Wave", desc: "Rapide et sans frais" },
-  { id: "cash", label: "Paiement à la livraison", desc: "Payez en espèces à la réception" },
+  { id: "orange_money", label: "Orange Money" as PaymentMethod, desc: "Paiement instantané via Orange" },
+  { id: "mtn", label: "MTN MoMo" as PaymentMethod, desc: "Paiement via MTN Mobile Money" },
+  { id: "wave", label: "Wave" as PaymentMethod, desc: "Rapide et sans frais" },
+  { id: "cash", label: "Cash à la livraison" as PaymentMethod, desc: "Payez en espèces à la réception" },
 ] as const;
 
 type PaymentId = (typeof PAYMENTS)[number]["id"];
@@ -25,10 +26,18 @@ function Checkout() {
   const { items, total, clear } = useCart();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [payment, setPayment] = useState<PaymentId>("orange_money");
+  const { settings } = useAdmin();
+  const availablePayments = PAYMENTS.filter((p) => settings.enabledMethods[p.label]);
+  const [payment, setPayment] = useState<PaymentId>(availablePayments[0]?.id ?? "cash");
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", address: "", city: "" });
+
+  useEffect(() => {
+    if (!availablePayments.find((p) => p.id === payment) && availablePayments[0]) {
+      setPayment(availablePayments[0].id);
+    }
+  }, [availablePayments, payment]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -186,7 +195,12 @@ function Checkout() {
           <section>
             <h2 className="font-display text-xl font-bold">Paiement</h2>
             <div className="mt-5 grid gap-3">
-              {PAYMENTS.map((p) => (
+              {availablePayments.length === 0 && (
+                <p className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+                  Aucun moyen de paiement disponible pour le moment.
+                </p>
+              )}
+              {availablePayments.map((p) => (
                 <label
                   key={p.id}
                   className={`flex cursor-pointer items-start gap-3 rounded-md border p-4 transition ${

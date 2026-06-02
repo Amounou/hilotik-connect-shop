@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, Search, User, LogOut, ChevronDown } from "lucide-react";
+import { ShoppingBag, Search, User, LogOut, ChevronDown, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { useCart } from "@/lib/cart";
 import { useAuth, signOut } from "@/hooks/use-auth";
 import { useCategories } from "@/hooks/use-catalog";
@@ -10,6 +11,20 @@ export function Header() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { data: categories = [] } = useCategories();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searchOpen) inputRef.current?.focus();
+  }, [searchOpen]);
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    navigate({ to: "/boutique", search: { cat: "all", sort: "popular", q: q || undefined } as never });
+    setSearchOpen(false);
+  };
 
   const parents = categories.filter((c) => !c.parentId);
   const childrenOf = (id: string) => categories.filter((c) => c.parentId === id);
@@ -79,7 +94,7 @@ export function Header() {
               Admin
             </Link>
           )}
-          <button className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground" aria-label="Recherche">
+          <button onClick={() => setSearchOpen((s) => !s)} className="rounded-md p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground" aria-label="Recherche">
             <Search className="h-5 w-5" />
           </button>
           {user ? (
@@ -106,6 +121,27 @@ export function Header() {
           </Link>
         </div>
       </div>
+      {searchOpen && (
+        <div className="border-t border-border bg-background">
+          <form onSubmit={submitSearch} className="container-page flex h-14 items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un produit…"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <button type="submit" className="rounded-md bg-foreground px-4 py-1.5 text-xs font-medium text-background hover:opacity-90">
+              Rechercher
+            </button>
+            <button type="button" onClick={() => setSearchOpen(false)} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Fermer">
+              <X className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      )}
     </header>
   );
 }
