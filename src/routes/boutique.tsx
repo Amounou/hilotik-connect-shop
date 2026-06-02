@@ -8,12 +8,14 @@ type Sort = "popular" | "price-asc" | "price-desc" | "new";
 interface Search {
   cat?: string;
   sort?: Sort;
+  q?: string;
 }
 
 export const Route = createFileRoute("/boutique")({
   validateSearch: (s: Record<string, unknown>): Search => ({
     cat: (s.cat as string) || "all",
     sort: (s.sort as Sort) || "popular",
+    q: (s.q as string) || "",
   }),
   component: Boutique,
   head: () => ({
