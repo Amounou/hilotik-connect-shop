@@ -27,9 +27,10 @@ export const Route = createFileRoute("/boutique")({
 });
 
 function Boutique() {
-  const { cat, sort } = Route.useSearch();
+  const { cat, sort, q } = Route.useSearch();
   const navigate = Route.useNavigate();
   const [maxPrice, setMaxPrice] = useState<number>(100000);
+  const [searchInput, setSearchInput] = useState(q ?? "");
 
   const { data: allProducts = [], isLoading } = useProducts();
   const { data: categories = [] } = useCategories();
@@ -44,6 +45,13 @@ function Boutique() {
       const allowed = new Set<string>([cat, ...childSlugs]);
       list = list.filter((p) => p.categorySlug && allowed.has(p.categorySlug));
     }
+    if (q && q.trim()) {
+      const needle = q.trim().toLowerCase();
+      list = list.filter((p) =>
+        p.name.toLowerCase().includes(needle) ||
+        (p.categorySlug ?? "").toLowerCase().includes(needle)
+      );
+    }
     list = list.filter((p) => p.price <= maxPrice);
     switch (sort) {
       case "price-asc": list.sort((a, b) => a.price - b.price); break;
@@ -51,7 +59,7 @@ function Boutique() {
       case "new": list.sort((a, b) => Number(!!b.isNew) - Number(!!a.isNew)); break;
     }
     return list;
-  }, [allProducts, cat, sort, maxPrice, categories]);
+  }, [allProducts, cat, sort, q, maxPrice, categories]);
 
 
   const currentCat = categories.find((c) => c.slug === cat);
