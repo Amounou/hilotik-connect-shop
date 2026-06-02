@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, Search, User, LogOut, ChevronDown } from "lucide-react";
+import { ShoppingBag, Search, User, LogOut, ChevronDown, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { useCart } from "@/lib/cart";
 import { useAuth, signOut } from "@/hooks/use-auth";
 import { useCategories } from "@/hooks/use-catalog";
@@ -10,6 +11,20 @@ export function Header() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { data: categories = [] } = useCategories();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searchOpen) inputRef.current?.focus();
+  }, [searchOpen]);
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    navigate({ to: "/boutique", search: { cat: "all", sort: "popular", q: q || undefined } as never });
+    setSearchOpen(false);
+  };
 
   const parents = categories.filter((c) => !c.parentId);
   const childrenOf = (id: string) => categories.filter((c) => c.parentId === id);
