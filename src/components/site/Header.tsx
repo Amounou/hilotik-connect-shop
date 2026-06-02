@@ -121,6 +121,27 @@ export function Header() {
           </Link>
         </div>
       </div>
+      {searchOpen && (
+        <div className="border-t border-border bg-background">
+          <form onSubmit={submitSearch} className="container-page flex h-14 items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un produit…"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <button type="submit" className="rounded-md bg-foreground px-4 py-1.5 text-xs font-medium text-background hover:opacity-90">
+              Rechercher
+            </button>
+            <button type="button" onClick={() => setSearchOpen(false)} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Fermer">
+              <X className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      )}
     </header>
   );
 }
