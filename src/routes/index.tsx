@@ -1,8 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useRef } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useProducts, useCategories } from "@/hooks/use-catalog";
 import hero from "@/assets/hero.jpg";
-import { ArrowRight, Truck, ShieldCheck, Smartphone } from "lucide-react";
+import pCoat from "@/assets/p-coat.jpg";
+import pSneaker from "@/assets/p-sneaker.jpg";
+import pBag from "@/assets/p-bag.jpg";
+import pWatch from "@/assets/p-watch.jpg";
+import { ArrowRight, Truck, ShieldCheck, Smartphone, ChevronRight, HelpCircle, Phone, Store } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
